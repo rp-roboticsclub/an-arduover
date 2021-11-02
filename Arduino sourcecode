@@ -1,0 +1,231 @@
+/*
+Project: an-arduover
+11/02/2021
+*/
+//http://tinyurl.com/ptj1212b
+//Updated code at http://tinyurl.com/ptj1102
+
+static String pubstrCmds[30];
+static int pubargumennt1[30];
+static int pubargumennt2[30];
+static int pubrunFlag = 0;
+
+static String v = "";
+static int ag2 = 0;
+static int ag3 = 0;
+
+void robotCommand()
+{
+    char tempb[20];
+    int i = 0;
+    
+    while (pubstrCmds[i] != "RUN")
+    {
+      if(pubstrCmds[i] == "MOTOR")
+      {
+          if(pubargumennt1[i] == 1)
+          {
+            if(pubargumennt2[i] > 0)
+            {
+                Serial.println("Motor 1 forward " + String(pubargumennt2[i]));
+
+                digitalWrite(2,HIGH);
+                digitalWrite(4,LOW);
+                analogWrite(3,pubargumennt2[i]+80);
+            }
+            else if(pubargumennt2[i] == 0)
+            {
+                Serial.println("Motor 1 stopped");
+                digitalWrite(2,LOW);
+                digitalWrite(4,LOW);
+            }
+            else if(pubargumennt2[i] < 0)
+            {
+                Serial.println("Motor 1 backwards " + String(pubargumennt2[i]));
+                digitalWrite(2,LOW);
+                digitalWrite(4,HIGH);
+                analogWrite(3,pubargumennt2[i]+80);              
+            }
+            else
+            Serial.println("You did not set a speed for motor " + String(pubargumennt1[i]));
+          }
+          else if(pubargumennt1[i] == 2)
+          {
+            if(pubargumennt2[i] > 0)
+            {
+                 Serial.println("Motor 2 forward " + String(pubargumennt2[i]));
+
+                 digitalWrite(7,HIGH);
+                 digitalWrite(8,LOW);
+                 analogWrite(5,pubargumennt2[i]+80);
+            }
+            else if(pubargumennt2[i] == 0)
+            {
+                 Serial.println("Motor 2 stopped");
+
+                 digitalWrite(7,LOW);
+                 digitalWrite(8,LOW);
+            }
+            else if(pubargumennt2[i] < 0)
+            {
+            Serial.println("Motor 2 backwards " + String(pubargumennt2[i]));
+
+                 digitalWrite(7,LOW);
+                 digitalWrite(8,HIGH);
+                 analogWrite(5,pubargumennt2[i]+80);              
+            }
+            else
+            Serial.println("You did not set a speed for motor " + String(pubargumennt1[i]));
+          }
+          else
+          {
+              Serial.println("Error: You did not select motor 1 or motor 2");
+          }
+      }
+      
+    
+      if(pubstrCmds[i] == "MSLEEP")
+      {
+          Serial.println("Robot will sleep for " + String(pubargumennt1[i]) + "ms...");
+          delay(pubargumennt1[i]);
+          Serial.println("...");
+          analogWrite(5,0);              
+          analogWrite(3,0);
+          delay(250);              
+          
+      }
+      i++;
+    }
+    delay(600);
+    pinMode(12, OUTPUT);
+    digitalWrite(12, LOW);
+}
+
+void setCommand(char cmdName[30] = "null", int arg1 = 0, int arg2 = 0)
+{
+
+      if(pubrunFlag >= 25)
+        Serial.println("Running low on memory... (28 lines MAX!)\n\r");
+
+      if(pubrunFlag >= 29)
+      {
+        Serial.println("Max lines reached.\n\rRunning...");
+        setCommand("RUN", 0, 0);
+        pubrunFlag = -1;
+        return;
+      }
+      pubstrCmds[pubrunFlag] = cmdName;
+      pubargumennt1[pubrunFlag] = arg1;
+      pubargumennt2[pubrunFlag] = arg2; 
+      char tempb[30];      
+      if(cmdName == "MOTOR")
+      {
+        Serial.println("Line " + String(pubrunFlag) + ": motor " + String(arg1) + " " + String(arg2));
+      }
+      else if(cmdName == "MSLEEP")
+      {
+        Serial.println("Line " + String(pubrunFlag) + ": msleep " + String(arg1));
+
+      }
+      pubrunFlag++;
+
+  return;
+}
+  void automatonrun(String v = "", int ag2 = 0, int ag3 = 0){
+  Serial.write("\r\n>> ");
+  char tempb[20];
+    if (v == "motor") {
+      setCommand("MOTOR", ag2, ag3);
+    }
+    
+    else if (v ==  "msleep") {
+      if(ag2 > 10000 || ag2 < 0)
+      {
+          Serial.write("msleep is too large a number. Needs to be less than 10,000 ms.\r\n");
+      }
+      if(ag2 < 10000)
+      {      
+      setCommand("MSLEEP", ag2, ag3);
+      }
+    }
+           
+    else if (v ==  "run"){
+      Serial.write("> Running commands...\n\r");
+      setCommand("RUN", 0, 0);
+      pubrunFlag = -1;
+    }
+            
+    else if (v ==  "stop"){
+      Serial.write("> Stopping robot\n\r");
+      delay(600);
+      pinMode(12, OUTPUT);
+      digitalWrite(12, LOW);
+    }
+      
+    else if (v ==  "del"){
+    sprintf(tempb, "Line %i deleted.", ag2);
+    Serial.print(tempb);
+    pubstrCmds[ag2] = "";
+    pubargumennt1[ag2] = 0;
+    pubargumennt2[ag2] = 0;
+    }
+
+    else if (v ==  "version"){
+    Serial.write("Your robot needs an update.\n\r");
+    delay (600);
+    }
+
+    else if (v ==  "help"){
+    Serial.write("\n\r\tView the full manual online at: https://github.com/rp-roboticsclub/an-arduover/wiki/manual\n\r");
+    delay (600);
+    }
+    else
+    {
+      Serial.write("Error\n\r");
+    }
+      Serial.write("\r\n>> Enter next command");
+  }
+
+void setup() {
+  pinMode(12, INPUT);
+  digitalWrite(12, LOW);
+  Serial.begin( 9600 );
+  delay(300);
+  Serial.write("AT+C012\n\r"); //channel 3
+  delay(300);
+  Serial.write("AT+P2\n\r"); //TX power 3
+  delay(300);
+  Serial.write("Rosa Parks Robotics Team\n\r\t-- An Ardurover --\n\r");
+  Serial.write("Pam Pham - Tim Jepson - Jeremiah O'Neal\n\r");
+  Serial.write("- Kevin Siemens - Ryan Chafe -\n\r");
+  Serial.write("Source code: http://tinyurl.com/ptj1212b \n\r");
+  Serial.write("Updated code at http://tinyurl.com/ptj1102 \n\r\r\n");
+  Serial.write("Clearing commands. Please wait...\r\n");
+  for(int i = 0; i <= 30; i++)
+  {
+    Serial.write(".");
+    pubstrCmds[i] = "";
+    pubargumennt1[i] = 0;
+    pubargumennt2[i] = 0;
+  }    
+  Serial.println("\n\rType help for help.\r\nReady.\n\r");
+}
+
+void loop() {
+  if(pubrunFlag > -1)
+  {
+    if (Serial.available() > 0) {
+    String v = Serial.readStringUntil(' ');
+    String ar2 = Serial.readStringUntil(' ');
+    String ar3 = Serial.readStringUntil('\n');
+    automatonrun(v, ar2.toInt(), ar3.toInt());
+    v = "";
+    ar2 = "";
+    ar3 = "";
+  }  
+  }
+  if(pubrunFlag == -1)
+  {    
+    robotCommand();  
+  }
+}
